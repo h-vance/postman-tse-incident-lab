@@ -1,0 +1,313 @@
+{
+  "info": {
+    "_postman_id": "77d930e8-6a0f-4726-899e-4b6fb79dcaf8",
+    "name": "TSE API Incident Lab",
+    "description": "Four deterministic API incidents demonstrating evidence-first Technical Support Engineering with Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const responseBody = pm.response.json();",
+          "",
+          "pm.test(\"Response is JSON\", function () {",
+          "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+          "});",
+          "",
+          "pm.test(\"Response includes a request ID\", function () {",
+          "  pm.expect(responseBody.request_id).to.be.a(\"string\").and.not.empty;",
+          "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.eql(responseBody.request_id);",
+          "});",
+          "",
+          "pm.test(\"Response does not expose demo credentials\", function () {",
+          "  const responseText = pm.response.text();",
+          "  [\"revoked_api_key\", \"active_api_key\", \"viewer_token\", \"admin_token\"].forEach(function (name) {",
+          "    const credential = pm.environment.get(name);",
+          "    if (credential) {",
+          "      pm.expect(responseText).not.to.include(credential);",
+          "    }",
+          "  });",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Revoked API Key",
+      "description": "Prove that a webhook process is still sending a revoked API key, then verify the corrected key.",
+      "item": [
+        {
+          "name": "Failure — Revoked key returns 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{revoked_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspace\": \"acme-prod\",\n  \"event\": \"webhook.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/v1/webhooks",
+            "description": "Expected failure: the server recognizes the credential fingerprint and rejects it as revoked."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Identifies the revoked key\", () => pm.expect(body.error).to.eql(\"api_key_revoked\"));",
+                  "pm.test(\"Returns only a safe fingerprint\", () => pm.expect(body.key_fingerprint).to.eql(\"key_revoked_91af\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fix — Active key returns 202",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{active_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspace\": \"acme-prod\",\n  \"event\": \"webhook.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/v1/webhooks",
+            "description": "Verification: the active key is accepted without changing the request structure."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 202 Accepted\", () => pm.response.to.have.status(202));",
+                  "pm.test(\"Accepts the webhook\", () => pm.expect(body.status).to.eql(\"accepted\"));",
+                  "pm.test(\"Uses the active fingerprint\", () => pm.expect(body.key_fingerprint).to.eql(\"key_active_72c1\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — Insufficient Permissions",
+      "description": "Distinguish successful authentication from insufficient authorization.",
+      "item": [
+        {
+          "name": "Failure — Viewer token returns 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/admin/reports",
+            "description": "Expected failure: the token is valid but lacks the reports:admin scope."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 403 Forbidden\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Identifies insufficient scope\", () => pm.expect(body.error).to.eql(\"insufficient_scope\"));",
+                  "pm.test(\"Returns only a safe fingerprint\", () => pm.expect(body.token_fingerprint).to.eql(\"token_viewer_4d20\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fix — Admin token returns 200",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/admin/reports",
+            "description": "Verification: a token with the required scope can access the report."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Authorizes the report\", () => pm.expect(body.status).to.eql(\"authorized\"));",
+                  "pm.test(\"Returns report data\", () => pm.expect(body.report.open_incidents).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — Incorrect Endpoint",
+      "description": "Use the exact method and path to separate a missing route from missing customer data.",
+      "item": [
+        {
+          "name": "Failure — Singular path returns 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/customer/cus_123",
+            "description": "Expected failure: the client uses /customer instead of the documented /customers route."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 404 Not Found\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Identifies a missing route\", () => pm.expect(body.error).to.eql(\"route_not_found\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fix — Documented path returns 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/customers/cus_123",
+            "description": "Verification: the documented plural route finds the customer."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Finds the expected customer\", () => pm.expect(body.customer.id).to.eql(\"cus_123\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 — Rate-Limited Client",
+      "description": "Use the 429 response and Retry-After header to choose a safe retry strategy.",
+      "item": [
+        {
+          "name": "Failure — Fourth attempt returns 429",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/usage?attempt=4",
+            "description": "Expected failure: the simulated client has exceeded its three-request limit."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 429 Too Many Requests\", () => pm.response.to.have.status(429));",
+                  "pm.test(\"Identifies rate limiting\", () => pm.expect(body.error).to.eql(\"rate_limit_exceeded\"));",
+                  "pm.test(\"Provides Retry-After\", () => pm.expect(pm.response.headers.get(\"Retry-After\")).to.eql(\"30\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fix — Allowed attempt returns 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/usage?attempt=1",
+            "description": "Verification: a request within the documented limit succeeds."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Returns 200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Reports remaining capacity\", () => pm.expect(body.remaining).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+name: Verify incident lab
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  postman:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Python syntax
+        run: python3 -m py_compile lab_api.py
+
+      - name: Start local lab API
+        run: |
+          python3 lab_api.py > lab-api.log 2>&1 &
+          echo $! > lab-api.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8088/health > /dev/null; then
+              exit 0
+            fi
+            sleep 0.2
+          done
+          cat lab-api.log
+          exit 1
+
+      - uses: postmanlabs/postman-cli-action@v1
+        with:
+          postman-cli-version: 1.44.0
+          command: >-
+            collection run
+            postman/tse-api-incident-lab.postman_collection.json
+            --environment postman/tse-local-lab.postman_environment.json
+            --bail
+
+      - name: Check logs for raw credentials
+        run: |
+          for secret in revoked-demo-key active-demo-key viewer-demo-token admin-demo-token; do
+            if grep -Fq "$secret" lab-api.log; then
+              echo "Raw demo credential found in server logs."
+              exit 1
+            fi
+          done
+
+      - name: Stop local lab API
+        if: always()
+        run: |
+          if [[ -f lab-api.pid ]]; then
+            kill "$(cat lab-api.pid)" 2>/dev/null || true
+          fi
