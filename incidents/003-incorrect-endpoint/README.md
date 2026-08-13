@@ -1,4 +1,4 @@
-# Incident 003 — Incorrect Endpoint
+# Incident 003: Incorrect Endpoint
 
 ## Customer ticket
 

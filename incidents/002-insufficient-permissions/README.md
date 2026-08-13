@@ -1,4 +1,4 @@
-# Incident 002 — Insufficient Permissions
+# Incident 002: Insufficient Permissions
 
 ## Customer ticket
 

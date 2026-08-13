@@ -1,4 +1,4 @@
-# Incident 001 — Revoked API Key
+# Incident 001: Revoked API Key
 
 ## Customer ticket
 

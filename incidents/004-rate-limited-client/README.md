@@ -1,4 +1,4 @@
-# Incident 004 — Rate-Limited Client
+# Incident 004: Rate-Limited Client
 
 ## Customer ticket
 
