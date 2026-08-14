@@ -37,11 +37,11 @@
   ],
   "item": [
     {
-      "name": "01 \u2014 Revoked API Key",
+      "name": "01: Revoked API Key",
       "description": "Prove that a webhook process is still sending a revoked API key, then verify the corrected key.",
       "item": [
         {
-          "name": "Failure \u2014 Revoked key returns 401",
+          "name": "Failure: Revoked key returns 401",
           "request": {
             "method": "POST",
             "header": [
@@ -85,7 +85,7 @@
           ]
         },
         {
-          "name": "Fix \u2014 Active key returns 202",
+          "name": "Fix: Active key returns 202",
           "request": {
             "method": "POST",
             "header": [
@@ -131,11 +131,11 @@
       ]
     },
     {
-      "name": "02 \u2014 Insufficient Permissions",
+      "name": "02: Insufficient Permissions",
       "description": "Distinguish successful authentication from insufficient authorization.",
       "item": [
         {
-          "name": "Failure \u2014 Viewer token returns 403",
+          "name": "Failure: Viewer token returns 403",
           "request": {
             "auth": {
               "type": "bearer",
@@ -169,7 +169,7 @@
           ]
         },
         {
-          "name": "Fix \u2014 Admin token returns 200",
+          "name": "Fix: Admin token returns 200",
           "request": {
             "auth": {
               "type": "bearer",
@@ -205,11 +205,11 @@
       ]
     },
     {
-      "name": "03 \u2014 Incorrect Endpoint",
+      "name": "03: Incorrect Endpoint",
       "description": "Use the exact method and path to separate a missing route from missing customer data.",
       "item": [
         {
-          "name": "Failure \u2014 Singular path returns 404",
+          "name": "Failure: Singular path returns 404",
           "request": {
             "method": "GET",
             "header": [],
@@ -232,7 +232,7 @@
           ]
         },
         {
-          "name": "Fix \u2014 Documented path returns 200",
+          "name": "Fix: Documented path returns 200",
           "request": {
             "method": "GET",
             "header": [],
@@ -257,11 +257,11 @@
       ]
     },
     {
-      "name": "04 \u2014 Rate-Limited Client",
+      "name": "04: Rate-Limited Client",
       "description": "Use the 429 response and Retry-After header to choose a safe retry strategy.",
       "item": [
         {
-          "name": "Failure \u2014 Fourth attempt returns 429",
+          "name": "Failure: Fourth attempt returns 429",
           "request": {
             "method": "GET",
             "header": [],
@@ -285,7 +285,7 @@
           ]
         },
         {
-          "name": "Fix \u2014 Allowed attempt returns 200",
+          "name": "Fix: Allowed attempt returns 200",
           "request": {
             "method": "GET",
             "header": [],
